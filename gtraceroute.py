@@ -602,6 +602,8 @@ def parse_options(argv=None):
                       action="store_true", default=False)
     parser.add_option("-I", "--icmp", help="Use ICMP protocol [default: TCP]",
                       action="store_true", default=False)
+    parser.add_option("-G", "--gre", help="Use GRE protocol [default: TCP]",
+                      action="store_true", default=False)
     parser.add_option("-P", "--payload", type="str", default=None,
                   help="hex string to use as data in UDP or ICMP probe packet")
     parser.add_option("-D", "--debug",
