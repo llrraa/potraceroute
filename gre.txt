@@ -1,0 +1,42 @@
+            sys.exit(main())
+
+
+        self.send_udp_socket = None
+                        rxdata = self.send_udp_socket.recv(120)
+            self.send_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, IPProtocol.number("UDP"))
+            self._bind_source_info(self.send_udp_socket)
+            self.send_udp_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+            self.send_udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.slist = [self.send_udp_socket]
+            self.send_udp_socket.sendto(payload, (self.destination_addr, self.port))
+            self.source_port = self.send_udp_socket.getsockname()[1]
+            self.send_udp_socket.close()
+    object to represent (and evaluate) the result of a traceroute probe
+    tobject - Traceroute object related to this probe
+    ttl - TTL for the probe
+    final - true if no need to probe again with higher TTL
+    and first 8 bytes of our probe packet)
+        true if the ICMP packet recieved is not a response to our probe
+        return False # this reply sure looks like an answer to our probe
+    traceroute "session" object where we store data re-used by each probe
+    def probe(self, ttl):
+        create sockets needed for the traceroute and send the probe packet
+                      help="interface IP to send probe traffic from")
+                      help="source port for TCP/UDP probes")
+                  help="hex string to use as data in UDP or ICMP probe packet")
+            thishop = trace.probe(ttl)
+class TracerouteHop(object):
+            return TracerouteHop(self, ttl, "Unexpected local socket error: {oops}".format(oops=oops), final=True)
+                            return TracerouteHop(self, ttl, "UDP port {port} responded".format(port=self.port), final=True, reached=True, rxdata=rxdata)
+                            return TracerouteHop(self, ttl, "TCP port {port} connection successful".format(port=self.port), final=True, reached=True, rxdata=rxdata)
+                        return TracerouteHop(self, ttl, "TCP port {port} connection refused".format(port=self.port), final=True, reached=True)
+                            return TracerouteHop(self, ttl, "TCP port {port} connection refused".format(port=self.port), final=True, reached=True)
+                    return TracerouteHop(self, ttl, "TCP port {port} connection successful.".format(port=self.port), final=True, reached=True)
+                hop = TracerouteHop(self, ttl, msg="received ICMP response", rxpacket=rx_packet)
+        return TracerouteHop(self, ttl, "*\ttimed out")
+class TCPPacket(IPPacket):
+                        self.rp_datafields = TCPPacket(self.rp_ipfields.payload)
+class TCPPacket(IPPacket):
+    def _pack_generic(parse_table, **kwargs):
+        packet = IPParse._pack_generic(IPParse.icmp_parsetab, **kwargs) + payload
+            packet = IPParse._pack_generic(IPParse.icmp_parsetab, **kwargs) + payload
