@@ -1,4 +1,68 @@
+class TracerouteHop(object):
+    '''
+    object to represent (and evaluate) the result of a traceroute probe
+
+    tobject - Traceroute object related to this probe
+    ttl - TTL for the probe
+    msg - user message of status
+    final - true if no need to probe again with higher TTL
+    reached - true if destination was reached
+    rxdata - layer 3 data to add to representation (UDP or TCP response)
+    rxpacket - ICMP packet to parse
+
+    if rxpacket is provided, we parse the ICMP packet (and if it is a
+    TTL Expired packet, also its payload which should contain the IP header
+    and first 8 bytes of our probe packet)
+    '''
+    def __init__(self, tobject, ttl, msg="Status Unknown", final=False, rxdata=None, rxpacket=None, reached=False):
+        self.tobject = tobject
+        self.ttl = ttl
+        self.msg = msg
+        self.final = final
+        self.reached = reached
+        self.rxdata = rxdata
+        self.rxpacket = rxpacket
+        if self.rxpacket is not None:
+            self.ipfields = IPPacket(rxpacket)
+            if self.ipfields.ip_protocol == IPProtocol.number("ICMP"):
+			
+
             sys.exit(main())
+
+    def probe(self, ttl):
+        '''
+        send a packet of the desired protocol with a crafted TTL
+        and parse the ICMP TTL Exceeded response that (hopefully) comes
+        back, or detect timeout or successfully contact with the remote host
+        '''
+
+_setup_sockets, gtraceroute.py:525
+probe, gtraceroute.py:437
+main, gtraceroute.py:703
+<module>, gtraceroute.py:722
+execfile, _pydev_execfile.py:18
+run, pydevd.py:1068
+main, pydevd.py:1658
+<module>, pydevd.py:1664
+
+    def _setup_sockets(self, ttl):
+        '''
+        create sockets needed for the traceroute and send the probe packet
+        '''
+send_ping_packet, gtraceroute.py:424
+_setup_sockets, gtraceroute.py:568
+probe, gtraceroute.py:437
+main, gtraceroute.py:703
+<module>, gtraceroute.py:722
+execfile, _pydev_execfile.py:18
+run, pydevd.py:1068
+main, pydevd.py:1658
+<module>, pydevd.py:1664
+
+    def send_ping_packet(self, seq, data=""):
+        packet = IPParse.pack_icmp(data, icmp_type=8, icmp_code=0, icmp_checksum=0, icmp_id=self.icmp_id, icmp_seq=seq)
+        self.icmp_socket.sendto(packet, (self.destination_addr, 1))
+
 
 
         self.send_udp_socket = None

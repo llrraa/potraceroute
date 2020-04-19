@@ -27,7 +27,7 @@ class IPProtocol(object):
     ''' Android doesn't have a /etc/protocols file, so getprotobyname()
         fails in that environment
     '''
-    protocolnumbers = {'ICMP': 1, 'TCP': 6, 'UDP': 17}
+    protocolnumbers = {'ICMP': 1, 'TCP': 6, 'UDP': 17, 'GRE': 17}
 
     @staticmethod
     def number(protocolname):
@@ -276,6 +276,7 @@ class TracerouteHop(object):
             self.ipfields = IPPacket(rxpacket)
             if self.ipfields.ip_protocol == IPProtocol.number("ICMP"):
                 self.icmpfields = ICMPPacket(self.ipfields.payload)
+                # print("ip_source_address", self.ipfields.ip_source_address )
                 if self.icmpfields.icmp_type in (3, 11):
                     self.rp_ipfields = IPPacket(self.icmpfields.payload)
                     if self.rp_ipfields.ip_protocol == IPProtocol.number('UDP'):
@@ -359,6 +360,11 @@ class Traceroute(object):
                 raise ValueError("ICMP mode not supported in AIX or NetBSD")
             self.proto = "ICMP"
             self.port = None
+        elif self.options.gre:
+            if platform.system() in ["AIX", "NetBSD"]:
+                raise ValueError("ICMP mode not supported in AIX or NetBSD")
+            self.proto = "GRE"
+            self.port = None
         else:
             self.proto = "TCP"
         if self.port is None:
@@ -377,9 +383,11 @@ class Traceroute(object):
             self.windows_main_ip = None
         self.icmp_id = None
         self.icmp_socket = None
+        self.gre_socket = None
         self.send_tcp_socket = None
         self.send_udp_socket = None
         self.slist = []
+        self.IPPROTO_GRE = 47
 
         self.destination_str = destination
         try:
@@ -397,6 +405,9 @@ class Traceroute(object):
 
     def icmp(self):
         return self.proto == "ICMP"
+
+    def gre(self):
+        return self.proto == "GRE"
 
     def hostname_of(self, curr_ip):
         curr_name = curr_ip
@@ -424,6 +435,11 @@ class Traceroute(object):
         packet = IPParse.pack_icmp(data, icmp_type=8, icmp_code=0, icmp_checksum=0, icmp_id=self.icmp_id, icmp_seq=seq)
         self.icmp_socket.sendto(packet, (self.destination_addr, 1))
 
+    def send_gre_packet(self, seq, data=""):
+        #packet = IPParse.pack_icmp(data, icmp_type=8, icmp_code=0, icmp_checksum=0, icmp_id=self.icmp_id, icmp_seq=seq)
+        #self.gre_socket.sendto(packet, (self.destination_addr, 1))
+        self.gre_socket.sendto(data, (self.destination_addr, 1))
+
     def probe(self, ttl):
         '''
         send a packet of the desired protocol with a crafted TTL
@@ -434,7 +450,7 @@ class Traceroute(object):
         sleep_interval = 0.05
 
         try:
-            self._setup_sockets(ttl)
+            self._setup_sockets_and_send(ttl)
         except socket.error as oops:
             return TracerouteHop(self, ttl, "Unexpected local socket error: {oops}".format(oops=oops), final=True)
 
@@ -518,7 +534,7 @@ class Traceroute(object):
         if is_windows() and is_icmp_socket and sip is not '':
             sock.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
 
-    def _setup_sockets(self, ttl):
+    def _setup_sockets_and_send(self, ttl):
         '''
         create sockets needed for the traceroute and send the probe packet
         '''
@@ -527,6 +543,9 @@ class Traceroute(object):
             self.icmp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
             self.icmp_socket.setblocking(0) # non-blocking
             self.icmp_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+            self.gre_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, self.IPPROTO_GRE) #socket.IPPROTO_GRE = 47
+            self.gre_socket.setblocking(0) # non-blocking
+            self.gre_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
         except socket.error as oops:
             if oops.errno == errno.EPERM:
                 platforminfo = " or run with a Python interpreter that has CAP_NET_RAW" if platform.system() == "Linux" else ""
@@ -566,6 +585,14 @@ class Traceroute(object):
             self.icmp_id = os.getpid() & 0xffff
             payload = decode_hex(self.options.payload) if self.options.payload is not None else bytearray('icmp payload', 'ascii')
             self.send_ping_packet(ttl, payload)
+        elif self.gre():
+            self._bind_source_info(self.gre_socket, is_icmp_socket=True)
+            self.icmp_id = os.getpid() & 0xffff
+            #payload = decode_hex(self.options.payload) if self.options.payload is not None else bytearray(
+             #   'icmp payload', 'ascii')
+            payload = decode_hex(self.options.payload) if self.options.payload is not None else decode_hex(
+                "0000080045000064000a0000ff01b58901010101020202020800bfd400020000000000000003be70abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd")
+            self.send_gre_packet(ttl, payload)
         else:
             raise EnvironmentError("self doesn't know what protocol to use")
 
